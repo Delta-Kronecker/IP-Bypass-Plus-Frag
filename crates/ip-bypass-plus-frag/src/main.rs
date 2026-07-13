@@ -535,9 +535,9 @@ fn ip_bypass_plus_main(
         info!(%ip, "ip_bypass_plus: SELECTED_IP set — skipping scan");
         (ip, None, Vec::new())
     } else {
-        // Parse CIDR ranges and show selection if multiple
+        // Parse CIDR ranges and show selection
         let ranges = ip_bypass_plus_frag_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
-        let selected_range = if ranges.len() > 1 && !no_tui {
+        let selected_range = if !ranges.is_empty() && !no_tui {
             let mut terminal = tui::enter_tui()?;
             let idx = tui::run_range_selection(&mut terminal, &ranges)?;
             tui::leave_tui(terminal)?;
@@ -546,20 +546,27 @@ fn ip_bypass_plus_main(
             None
         };
 
-        // Load all IPs
-        let all_ips = load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
-            .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?;
-        reject_ipv6_ip_candidates(&all_ips, "ip_bypass_plus", &ip_list_path)?;
-
-        // Filter to selected range if applicable
+        // Load IPs from selected range only (randomized order)
         let ips = if let Some(idx) = selected_range {
             let (ref range_str, _) = ranges[idx];
             info!(range = %range_str, "selected CIDR range");
             let selected_net: IpNet = range_str.parse()
                 .with_context(|| format!("parsing CIDR range '{}'", range_str))?;
-            all_ips.into_iter().filter(|ip| selected_net.contains(ip)).collect()
+            let all_ips = load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
+                .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?;
+            reject_ipv6_ip_candidates(&all_ips, "ip_bypass_plus", &ip_list_path)?;
+            let mut filtered: Vec<IpAddr> = all_ips.into_iter()
+                .filter(|ip| selected_net.contains(ip))
+                .collect();
+            // Randomize order
+            use rand::seq::SliceRandom;
+            let mut rng = rand::thread_rng();
+            filtered.shuffle(&mut rng);
+            info!(total = filtered.len(), "IPs in selected range after randomize");
+            filtered
         } else {
-            all_ips
+            load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
+                .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?
         };
 
         if ips.is_empty() {

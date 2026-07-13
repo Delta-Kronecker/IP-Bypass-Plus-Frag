@@ -31,6 +31,7 @@ crossterm.workspace = true
 
 rustls.workspace = true
 ipnet.workspace = true
+rand = "0.8"
 
 ip-bypass-plus-frag-core = { path = "../ip-bypass-plus-frag-core" }
 ip-bypass-plus-frag-platform = { path = "../ip-bypass-plus-frag-platform", default-features = false }
