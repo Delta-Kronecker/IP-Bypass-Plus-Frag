@@ -29,18 +29,18 @@ use tracing::{debug, error, info, warn};
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::EnvFilter;
 
-use zerodpi_core::config::Config;
-use zerodpi_core::flow::new_flow_table;
-use zerodpi_core::handler::Handler;
-use zerodpi_core::interceptor::{FilterSpec, InterceptorShutdown, PacketInterceptor};
-use zerodpi_core::ip_scanner::{load_ip_list, scan_ip_list, IpProbeEntry, IpScanEvent};
-use zerodpi_core::methods::build_method;
-use zerodpi_core::net::default_interface_ipv4;
-use zerodpi_core::proxy::{
+use ip_bypass_plus_frag_core::config::Config;
+use ip_bypass_plus_frag_core::flow::new_flow_table;
+use ip_bypass_plus_frag_core::handler::Handler;
+use ip_bypass_plus_frag_core::interceptor::{FilterSpec, InterceptorShutdown, PacketInterceptor};
+use ip_bypass_plus_frag_core::ip_scanner::{load_ip_list, scan_ip_list, IpProbeEntry, IpScanEvent};
+use ip_bypass_plus_frag_core::methods::build_method;
+use ip_bypass_plus_frag_core::net::default_interface_ipv4;
+use ip_bypass_plus_frag_core::proxy::{
     run_ip_bypass_plus_proxy, IpPool, IpPoolEntry, ProxyEvent, ProxyEventSender, RelayEndReason,
     CONNECT_PORT,
 };
-use zerodpi_platform::{ensure_packet_interception_access, DefaultInterceptor};
+use ip_bypass_plus_frag_platform::{ensure_packet_interception_access, DefaultInterceptor};
 
 use runtime_events::{
     BypassStatus, RuntimeEvent, RuntimeEventEmitter, ScanKind, TargetKind, CONTRACT_VERSION,
@@ -83,7 +83,7 @@ impl<'a> MakeWriter<'a> for TuiAwareStderr {
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about = "IP Bypass Plus: IPv4 relay with real-SNI-preserving DPI bypass")]
+#[command(version, about = "IP Bypass Plus Frag: IPv4 relay with real-SNI-preserving DPI bypass")]
 struct Args {
     #[arg(short, long)]
     config: Option<PathBuf>,
@@ -393,14 +393,14 @@ async fn log_headless_proxy_events(
                 info!(%peer, src_port, %upstream_ip, "accepted proxy connection");
             }
             ProxyEvent::BypassComplete { src_port, outcome } => match outcome {
-                zerodpi_core::flow::BypassOutcome::FakeDataAcked => {
+                ip_bypass_plus_frag_core::flow::BypassOutcome::FakeDataAcked => {
                     events.emit(RuntimeEvent::BypassFinished {
                         src_port,
                         status: BypassStatus::Completed,
                     });
                     info!(src_port, "bypass complete; relaying");
                 }
-                zerodpi_core::flow::BypassOutcome::UnexpectedClose => {
+                ip_bypass_plus_frag_core::flow::BypassOutcome::UnexpectedClose => {
                     events.emit(RuntimeEvent::BypassFinished {
                         src_port,
                         status: BypassStatus::Failed,
@@ -536,7 +536,7 @@ fn ip_bypass_plus_main(
         (ip, None, Vec::new())
     } else {
         // Parse CIDR ranges and show selection if multiple
-        let ranges = zerodpi_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
+        let ranges = ip_bypass_plus_frag_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
         let selected_range = if ranges.len() > 1 && !no_tui {
             let mut terminal = tui::enter_tui()?;
             let idx = tui::run_range_selection(&mut terminal, &ranges)?;
@@ -695,7 +695,7 @@ fn ip_bypass_plus_main(
     } else {
         let method_box = build_method(&cfg)
             .with_context(|| format!("unknown BYPASS_METHOD '{}'", cfg.BYPASS_METHOD))?;
-        let method: Arc<dyn zerodpi_core::methods::BypassMethod> = Arc::from(method_box);
+        let method: Arc<dyn ip_bypass_plus_frag_core::methods::BypassMethod> = Arc::from(method_box);
 
         let filter = FilterSpec {
             interface_ip,
@@ -747,9 +747,9 @@ fn ip_bypass_plus_main(
     }
 
     let dash_info = if let Some(ref pool) = ip_pool {
-        tui::DashboardInfo::IpBypassPlusPool { active_ip, pool: pool.entries().to_vec() }
+        tui::DashboardInfo::IpBypassPlusFragPool { active_ip, pool: pool.entries().to_vec() }
     } else {
-        tui::DashboardInfo::IpBypassPlus { ip: active_ip }
+        tui::DashboardInfo::IpBypassPlusFrag { ip: active_ip }
     };
     let mut terminal = tui::enter_tui()?;
     let dash_result = tui::run_dashboard(&mut terminal, &mut event_rx, &dash_info, &cfg_dash);

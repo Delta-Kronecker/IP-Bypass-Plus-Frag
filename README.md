@@ -1,4 +1,4 @@
-# IpBypassPlus
+# IpBypassPlusFrag
 
 > **IPv4 DPI bypass proxy with real-SNI-preserving fragmentation** — built from [ZeroDPI](https://github.com/mhdr/ZeroDPI)
 
@@ -7,9 +7,9 @@
 
 ---
 
-## What is IpBypassPlus?
+## What is IpBypassPlusFrag?
 
-IpBypassPlus is a **stripped-down, focused fork** of ZeroDPI that only supports the `ip_bypass_plus` mode. It scans IPv4 addresses, selects the best candidates, and relays VPN traffic through them while applying DPI bypass methods that preserve the VPN client's real SNI.
+IpBypassPlusFrag is a **stripped-down, focused fork** of ZeroDPI that only supports the `ip_bypass_plus` mode. It scans IPv4 addresses, selects the best candidates, and relays VPN traffic through them while applying DPI bypass methods that preserve the VPN client's real SNI.
 
 ### How it was built from ZeroDPI
 
@@ -111,16 +111,16 @@ Upload speed is weighted higher than download because VPN upload performance is 
 ### Windows
 
 ```cmd
-cd ip-bypass-plus-windows
-ip-bypass-plus.exe --config config.toml
+cd ip-bypass-plus-frag-windows
+ip-bypass-plus-frag.exe --config config.toml
 ```
 
 ### Termux
 
 ```bash
-tar xzf ip-bypass-plus-termux.zip
-chmod +x ip-bypass-plus
-./ip-bypass-plus --config config.toml
+tar xzf ip-bypass-plus-frag-termux.zip
+chmod +x ip-bypass-plus-frag
+./ip-bypass-plus-frag --config config.toml
 ```
 
 ### First run flow
@@ -144,7 +144,7 @@ chmod +x ip-bypass-plus
 ## CLI Options
 
 ```
-ip-bypass-plus [OPTIONS]
+ip-bypass-plus-frag [OPTIONS]
 
 Options:
   -c, --config <PATH>           Path to config.toml
@@ -184,7 +184,7 @@ cargo zigbuild --release --target aarch64-unknown-linux-musl
 ## Project Structure
 
 ```
-IpBypassPlus/
+IpBypassPlusFrag/
 ├── Cargo.toml                  # Workspace root
 ├── config.toml                 # Configuration
 ├── ip_list.txt                 # IP/CIDR list

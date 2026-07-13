@@ -1,12 +1,12 @@
 [package]
-name = "zerodpi-platform"
+name = "ip-bypass-plus-frag-platform"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Platform packet-interception backends for IP Bypass Plus (WinDivert on Windows, NFQUEUE on Linux/Android)."
+description = "Platform packet-interception backends for IP Bypass Plus Frag (WinDivert on Windows, NFQUEUE on Linux/Android)."
 
 [features]
 default = ["packet-interception"]
@@ -16,7 +16,7 @@ packet-interception = ["dep:nfq"]
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-zerodpi-core = { path = "../zerodpi-core" }
+ip-bypass-plus-frag-core = { path = "../ip-bypass-plus-frag-core" }
 etherparse.workspace = true
 parking_lot.workspace = true
 

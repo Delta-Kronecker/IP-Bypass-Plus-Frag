@@ -80,7 +80,7 @@ impl BypassMethod for TlsRecordFrag {
     fn on_first_data_packet(&self, _flow: &FlowState, pkt: &mut PacketView<'_>) -> MethodAction {
         let Some(fragmented) = fragment_payload(pkt.payload, self.frag_size) else {
             trace!(
-                target = "zerodpi::tls_record_frag",
+                target = "ip_bypass_plus_frag::tls_record_frag",
                 frag_size = self.frag_size,
                 orig_len = pkt.payload_len,
                 "first data packet is not a complete TLS record; passing through"
@@ -96,7 +96,7 @@ impl BypassMethod for TlsRecordFrag {
         pkt.bump_ipv4_ident = self.bump_ip_ident;
 
         trace!(
-            target = "zerodpi::tls_record_frag",
+            target = "ip_bypass_plus_frag::tls_record_frag",
             frag_size = self.frag_size,
             orig_len = pkt.payload_len,
             set_psh = self.set_psh,

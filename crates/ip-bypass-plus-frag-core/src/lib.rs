@@ -1,4 +1,4 @@
-//! IP Bypass Plus core: platform-independent logic.
+//! IP Bypass Plus Frag core: platform-independent logic.
 //!
 //! - [`config`]: load/validate `config.toml`.
 //! - [`flow`]: flow keys, per-connection state, the shared flow table.

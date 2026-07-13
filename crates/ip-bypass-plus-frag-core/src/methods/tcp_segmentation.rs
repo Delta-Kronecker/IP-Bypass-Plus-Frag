@@ -146,7 +146,7 @@ where
         dst.flush().await.context("flushing fragmented chunk")?;
         sent += chunk.len();
         trace!(
-            target = "zerodpi::tls_frag",
+            target = "ip_bypass_plus_frag::tls_frag",
             chunk_len = chunk.len(),
             length_range = %length,
             total_sent = sent,

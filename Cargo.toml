@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/zerodpi-core",
-    "crates/zerodpi-platform",
-    "crates/zerodpi",
+    "crates/ip-bypass-plus-frag-core",
+    "crates/ip-bypass-plus-frag-platform",
+    "crates/ip-bypass-plus-frag",
 ]
 
 [workspace.package]
@@ -11,9 +11,9 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 license = "MIT"
-authors = ["ZeroDPI contributors"]
-repository = "https://github.com/mhdr/ZeroDPI"
-description = "IP Bypass Plus: IPv4 relay with real-SNI-preserving DPI bypass"
+authors = ["Delta-Kronecker"]
+repository = "https://github.com/Delta-Kronecker/IP-Bypass-Plus-Frag"
+description = "IP Bypass Plus Frag: IPv4 relay with real-SNI-preserving DPI bypass"
 
 [workspace.dependencies]
 anyhow = "1.0"

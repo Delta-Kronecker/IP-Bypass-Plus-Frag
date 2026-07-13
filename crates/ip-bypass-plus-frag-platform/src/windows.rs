@@ -13,7 +13,7 @@ use windivert::layer::NetworkLayer;
 use windivert::prelude::{WinDivert, WinDivertFlags, WinDivertPacket};
 use windivert_sys::ChecksumFlags;
 
-use zerodpi_core::interceptor::{
+use ip_bypass_plus_frag_core::interceptor::{
     Direction, FilterSpec, InterceptorShutdown, PacketHandler, PacketInterceptor, PacketView,
     TcpFlags, Verdict,
 };
@@ -466,7 +466,7 @@ mod tests {
 
     #[test]
     fn tcp_options_can_be_appended_after_rebuild() {
-        use zerodpi_core::methods::wrong_md5::tcp_md5_signature_option;
+        use ip_bypass_plus_frag_core::methods::wrong_md5::tcp_md5_signature_option;
 
         let buf = bare_ack_packet();
         let layout = PacketLayout {
@@ -533,7 +533,7 @@ mod tests {
     #[test]
     fn tcp_option_append_rejects_oversized_header() {
         use etherparse::TcpHeader;
-        use zerodpi_core::methods::wrong_md5::tcp_md5_signature_option;
+        use ip_bypass_plus_frag_core::methods::wrong_md5::tcp_md5_signature_option;
 
         let mut tcp = TcpHeader::new(12345, 443, 1001, 65535);
         tcp.set_options_raw(&[1; 24]).unwrap();

@@ -4,7 +4,7 @@
 //! - on Linux/Android: [`linux::NfqInterceptor`]
 //! - on Windows: [`windows::WinDivertInterceptor`]
 //!
-//! Both implement [`zerodpi_core::interceptor::PacketInterceptor`].
+//! Both implement [`ip_bypass_plus_frag_core::interceptor::PacketInterceptor`].
 
 #[cfg(all(
     any(target_os = "linux", target_os = "android"),
@@ -19,7 +19,7 @@ use anyhow::Result;
     any(target_os = "linux", target_os = "android"),
     not(feature = "packet-interception")
 ))]
-use zerodpi_core::interceptor::{
+use ip_bypass_plus_frag_core::interceptor::{
     FilterSpec, InterceptorShutdown, PacketHandler, PacketInterceptor,
 };
 
@@ -33,7 +33,7 @@ pub use linux::NfqInterceptor as DefaultInterceptor;
 pub use windows::WinDivertInterceptor as DefaultInterceptor;
 
 #[cfg(not(any(target_os = "linux", target_os = "android", windows)))]
-compile_error!("zerodpi-platform: no interceptor backend for this target OS");
+compile_error!("ip-bypass-plus-frag-platform: no interceptor backend for this target OS");
 
 /// Placeholder interceptor used by Android app rootless artifacts that are
 /// intentionally built without NFQUEUE support.
@@ -79,8 +79,8 @@ pub fn ensure_packet_interception_access() -> Result<()> {
 
 #[cfg(windows)]
 fn packet_interception_access_error() -> &'static str {
-    "ZeroDPI needs Administrator privileges for packet interception via WinDivert. \
-     Start PowerShell or Command Prompt with \"Run as administrator\" and run ZeroDPI again. \
+    "IP Bypass Plus Frag needs Administrator privileges for packet interception via WinDivert. \
+     Start PowerShell or Command Prompt with \"Run as administrator\" and run IP Bypass Plus Frag again. \
      To run without Administrator privileges, use BYPASS_METHOD = \"tls_frag\" \
      or MODE = \"ip_bypass\"."
 }
@@ -90,8 +90,8 @@ fn packet_interception_access_error() -> &'static str {
     feature = "packet-interception"
 ))]
 fn packet_interception_access_error() -> &'static str {
-    "ZeroDPI needs root privileges or CAP_NET_ADMIN for packet interception via NFQUEUE. \
-     Run ZeroDPI with sudo/root, grant CAP_NET_ADMIN to the binary, or use \
+    "IP Bypass Plus Frag needs root privileges or CAP_NET_ADMIN for packet interception via NFQUEUE. \
+     Run IP Bypass Plus Frag with sudo/root, grant CAP_NET_ADMIN to the binary, or use \
      BYPASS_METHOD = \"tls_frag\" or MODE = \"ip_bypass\"."
 }
 
@@ -100,7 +100,7 @@ fn packet_interception_access_error() -> &'static str {
     not(feature = "packet-interception")
 ))]
 fn packet_interception_access_error() -> &'static str {
-    "This ZeroDPI artifact was built without packet interception support. \
+    "This IP Bypass Plus Frag artifact was built without packet interception support. \
      It can run rootless modes such as MODE = \"ip_bypass\", scan-only modes, \
      or BYPASS_METHOD = \"tls_frag\" where supported. NFQUEUE modes need an \
      artifact built with the packet-interception feature and root/CAP_NET_ADMIN."

@@ -449,12 +449,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "ip-bypass-plus"
+name = "ip-bypass-plus-frag"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
  "crossterm",
+ "ip-bypass-plus-frag-core",
+ "ip-bypass-plus-frag-platform",
  "ipnet",
  "ratatui",
  "rustls",
@@ -464,8 +466,39 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "zerodpi-core",
- "zerodpi-platform",
+]
+
+[[package]]
+name = "ip-bypass-plus-frag-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dashmap",
+ "ipnet",
+ "parking_lot",
+ "rustls",
+ "serde",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-rustls",
+ "toml",
+ "tracing",
+ "webpki-roots 0.26.11",
+]
+
+[[package]]
+name = "ip-bypass-plus-frag-platform"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "etherparse 0.20.3",
+ "ip-bypass-plus-frag-core",
+ "nfq",
+ "parking_lot",
+ "thiserror 2.0.18",
+ "tracing",
+ "windivert",
+ "windivert-sys",
 ]
 
 [[package]]
@@ -1443,39 +1476,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "zerodpi-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dashmap",
- "ipnet",
- "parking_lot",
- "rustls",
- "serde",
- "thiserror 2.0.18",
- "tokio",
- "tokio-rustls",
- "toml",
- "tracing",
- "webpki-roots 0.26.11",
-]
-
-[[package]]
-name = "zerodpi-platform"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "etherparse 0.20.3",
- "nfq",
- "parking_lot",
- "thiserror 2.0.18",
- "tracing",
- "windivert",
- "windivert-sys",
- "zerodpi-core",
 ]
 
 [[package]]

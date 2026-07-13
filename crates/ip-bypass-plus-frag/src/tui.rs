@@ -20,10 +20,10 @@ use ratatui::widgets::{Block, Borders, Cell, Gauge, Paragraph, Row, Table, Table
 use ratatui::Terminal;
 use tokio::sync::mpsc;
 
-use zerodpi_core::config::Config;
-use zerodpi_core::flow::BypassOutcome;
-use zerodpi_core::ip_scanner::{IpProbeEntry, IpScanEvent};
-use zerodpi_core::proxy::{ProxyEvent, IpPoolEntry};
+use ip_bypass_plus_frag_core::config::Config;
+use ip_bypass_plus_frag_core::flow::BypassOutcome;
+use ip_bypass_plus_frag_core::ip_scanner::{IpProbeEntry, IpScanEvent};
+use ip_bypass_plus_frag_core::proxy::{ProxyEvent, IpPoolEntry};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 static TUI_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -107,8 +107,8 @@ fn fmt_rate_bps(speed: Option<f64>) -> String {
 
 #[derive(Clone)]
 pub enum DashboardInfo {
-    IpBypassPlus { ip: IpAddr },
-    IpBypassPlusPool { active_ip: IpAddr, pool: Vec<IpPoolEntry> },
+    IpBypassPlusFrag { ip: IpAddr },
+    IpBypassPlusFragPool { active_ip: IpAddr, pool: Vec<IpPoolEntry> },
 }
 
 // ---------------------------------------------------------------------------
@@ -424,7 +424,7 @@ fn draw_ip_scan_progress(
             ])
             .split(area);
 
-        let header = Paragraph::new("ZeroDPI — Scanning IPs…")
+        let header = Paragraph::new("IP Bypass Plus Frag — Scanning IPs…")
             .style(
                 Style::default()
                     .fg(Color::Cyan)
@@ -576,7 +576,7 @@ fn draw_ip_selection(frame: &mut ratatui::Frame, entries: &[IpProbeEntry], state
         ])
         .split(area);
 
-    let header = Paragraph::new("ZeroDPI — Select IP")
+    let header = Paragraph::new("IP Bypass Plus Frag — Select IP")
         .style(
             Style::default()
                 .fg(Color::Cyan)
@@ -982,12 +982,12 @@ pub fn run_dashboard(
     cfg: &Config,
 ) -> anyhow::Result<()> {
     let active_ip = match info {
-        DashboardInfo::IpBypassPlus { ip } => Some(*ip),
-        DashboardInfo::IpBypassPlusPool { active_ip, .. } => Some(*active_ip),
+        DashboardInfo::IpBypassPlusFrag { ip } => Some(*ip),
+        DashboardInfo::IpBypassPlusFragPool { active_ip, .. } => Some(*active_ip),
     };
     let pool_ips: Vec<IpAddr> = match info {
-        DashboardInfo::IpBypassPlus { .. } => Vec::new(),
-        DashboardInfo::IpBypassPlusPool { pool, .. } => pool.iter().map(|e| e.ip).collect(),
+        DashboardInfo::IpBypassPlusFrag { .. } => Vec::new(),
+        DashboardInfo::IpBypassPlusFragPool { pool, .. } => pool.iter().map(|e| e.ip).collect(),
     };
     let mut state = DashboardState {
         records: VecDeque::with_capacity(MAX_RECORDS),
@@ -1155,8 +1155,8 @@ fn apply_event(event: ProxyEvent, state: &mut DashboardState) {
                 *state.cumulative_down.entry(r.upstream_ip).or_insert(0) += s2c_bytes;
                 let now = Instant::now();
                 let status = match reason {
-                    zerodpi_core::proxy::RelayEndReason::Completed => ConnStatus::Done,
-                    zerodpi_core::proxy::RelayEndReason::MaxLifetime => ConnStatus::Rotated,
+                    ip_bypass_plus_frag_core::proxy::RelayEndReason::Completed => ConnStatus::Done,
+                    ip_bypass_plus_frag_core::proxy::RelayEndReason::MaxLifetime => ConnStatus::Rotated,
                 };
                 r.set_status(status, now);
                 r.c2s_bytes = c2s_bytes;
@@ -1226,14 +1226,14 @@ fn draw_dashboard(
             .split(area);
 
         let title = if state.channel_closed {
-            " ZeroDPI — Stopped "
+            " IP Bypass Plus Frag — Stopped "
         } else {
-            " ZeroDPI — Running "
+            " IP Bypass Plus Frag — Running "
         };
         let uptime = fmt_uptime(state.start.elapsed());
 
         let header_lines = match info {
-            DashboardInfo::IpBypassPlus { .. } => {
+            DashboardInfo::IpBypassPlusFrag { .. } => {
                 let ip = state.active_ip.expect("IP dashboard state is initialised");
                 vec![
                     Line::from(vec![
@@ -1263,7 +1263,7 @@ fn draw_dashboard(
                     ]),
                 ]
             }
-            DashboardInfo::IpBypassPlusPool { pool, .. } => {
+            DashboardInfo::IpBypassPlusFragPool { pool, .. } => {
                 vec![
                     Line::from(vec![
                         Span::styled("Mode: ", label_style()),
@@ -1347,7 +1347,7 @@ fn draw_dashboard(
         // Summary table: one row per pool IP with aggregated stats
         let now = Instant::now();
         let pool = match info {
-            DashboardInfo::IpBypassPlusPool { pool, .. } => pool,
+            DashboardInfo::IpBypassPlusFragPool { pool, .. } => pool,
             _ => {
                 // single IP mode - just show that one IP
                 let ip = state.active_ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));

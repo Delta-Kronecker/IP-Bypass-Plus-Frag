@@ -1,21 +1,21 @@
 [package]
-name = "ip-bypass-plus"
+name = "ip-bypass-plus-frag"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "IP Bypass Plus: IPv4 relay with real-SNI-preserving DPI bypass."
-default-run = "ip-bypass-plus"
+description = "IP Bypass Plus Frag: IPv4 relay with real-SNI-preserving DPI bypass."
+default-run = "ip-bypass-plus-frag"
 
 [[bin]]
-name = "ip-bypass-plus"
+name = "ip-bypass-plus-frag"
 path = "src/main.rs"
 
 [features]
 default = ["packet-interception"]
-packet-interception = ["zerodpi-platform/packet-interception"]
+packet-interception = ["ip-bypass-plus-frag-platform/packet-interception"]
 
 [dependencies]
 anyhow.workspace = true
@@ -32,5 +32,5 @@ crossterm.workspace = true
 rustls.workspace = true
 ipnet.workspace = true
 
-zerodpi-core = { path = "../zerodpi-core" }
-zerodpi-platform = { path = "../zerodpi-platform", default-features = false }
+ip-bypass-plus-frag-core = { path = "../ip-bypass-plus-frag-core" }
+ip-bypass-plus-frag-platform = { path = "../ip-bypass-plus-frag-platform", default-features = false }

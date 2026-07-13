@@ -13,7 +13,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let req = format!(
-        "POST {upload_path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nUser-Agent: zerodpi-scanner/0.1\r\nContent-Type: application/octet-stream\r\nContent-Length: {upload_bytes}\r\n\r\n"
+        "POST {upload_path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nUser-Agent: ip-bypass-plus-frag-scanner/0.1\r\nContent-Type: application/octet-stream\r\nContent-Length: {upload_bytes}\r\n\r\n"
     );
 
     if !matches!(
