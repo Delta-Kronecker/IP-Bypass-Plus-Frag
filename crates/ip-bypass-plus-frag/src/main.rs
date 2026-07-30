@@ -165,8 +165,8 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
     let mut cfg = Config::from_file(&cfg_path)
         .with_context(|| format!("loading config from {}", cfg_path.display()))?;
 
-    if let Some(ref v) = args.listen_host {
-        cfg.LISTEN_HOST = v.clone();
+    if let Some(v) = args.listen_host {
+        cfg.LISTEN_HOST = v;
     }
     if let Some(v) = args.listen_port {
         cfg.LISTEN_PORT = v;
@@ -174,8 +174,8 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
     if args.auto_select {
         cfg.AUTO_SELECT = true;
     }
-    if let Some(ref v) = args.method {
-        cfg.BYPASS_METHOD = v.clone();
+    if let Some(v) = args.method {
+        cfg.BYPASS_METHOD = v;
     }
     if let Some(v) = args.queue_num {
         cfg.NFQUEUE_NUM = v;
@@ -206,8 +206,6 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
         listen_port: cfg.LISTEN_PORT,
         auto_select: cfg.AUTO_SELECT,
         no_tui,
-        cidr_range: args.cidr_range,
-        mode_selection: args.mode.clone(),
         root_required,
     });
     if root_required {
@@ -542,7 +540,7 @@ fn ip_bypass_plus_main(
         info!(%ip, "ip_bypass_plus: SELECTED_IP set — skipping scan");
         (ip, None, Vec::new())
     } else {
-        // Parse CIDR ranges and show selection
+        // Parse CIDR ranges and show selection if multiple
         let ranges = ip_bypass_plus_frag_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
         let selected_range = if !ranges.is_empty() {
             if let Some(idx) = args.cidr_range {
@@ -555,7 +553,7 @@ fn ip_bypass_plus_main(
                         ranges.len()
                     );
                 }
-            } else if !no_tui {
+            } else if ranges.len() > 1 && !no_tui {
                 let mut terminal = tui::enter_tui()?;
                 let idx = tui::run_range_selection(&mut terminal, &ranges)?;
                 tui::leave_tui(terminal)?;
@@ -567,27 +565,20 @@ fn ip_bypass_plus_main(
             None
         };
 
-        // Load IPs from selected range only (randomized order)
+        // Load all IPs
+        let all_ips = load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
+            .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?;
+        reject_ipv6_ip_candidates(&all_ips, "ip_bypass_plus", &ip_list_path)?;
+
+        // Filter to selected range if applicable
         let ips = if let Some(idx) = selected_range {
             let (ref range_str, _) = ranges[idx];
             info!(range = %range_str, "selected CIDR range");
             let selected_net: IpNet = range_str.parse()
                 .with_context(|| format!("parsing CIDR range '{}'", range_str))?;
-            let all_ips = load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
-                .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?;
-            reject_ipv6_ip_candidates(&all_ips, "ip_bypass_plus", &ip_list_path)?;
-            let mut filtered: Vec<IpAddr> = all_ips.into_iter()
-                .filter(|ip| selected_net.contains(ip))
-                .collect();
-            // Randomize order
-            use rand::seq::SliceRandom;
-            let mut rng = rand::thread_rng();
-            filtered.shuffle(&mut rng);
-            info!(total = filtered.len(), "IPs in selected range after randomize");
-            filtered
+            all_ips.into_iter().filter(|ip| selected_net.contains(ip)).collect()
         } else {
-            load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS)
-                .with_context(|| format!("loading ip_list from '{}'", ip_list_path.display()))?
+            all_ips
         };
 
         if ips.is_empty() {
@@ -840,7 +831,7 @@ async fn background_ip_rescan(
         };
         let cfg_clone = cfg.clone();
         let sni_clone = scan_sni.clone();
-        let entries = scan_ip_list(ips, sni_clone, scan_timeout, cfg_clone, None, None).await;
+        let entries = scan_ip_list(ips, sni_clone, scan_timeout, cfg_clone, None).await;
 
         if headless {
             info!(
@@ -898,7 +889,7 @@ async fn scan_ip_list_headless(
     });
 
     if !events.enabled() {
-        let entries = scan_ip_list(ips, scan_sni, timeout, cfg, None, None).await;
+        let entries = scan_ip_list(ips, scan_sni, timeout, cfg, None).await;
         events.emit(RuntimeEvent::ScanCompleted {
             scan: ScanKind::Ip,
             results: entries.len(),
@@ -939,7 +930,7 @@ async fn scan_ip_list_headless(
         }
     });
 
-    let entries = scan_ip_list(ips, scan_sni, timeout, cfg, Some(tx), None).await;
+    let entries = scan_ip_list(ips, scan_sni, timeout, cfg, Some(tx)).await;
     let _ = progress_handle.await;
     events.emit(RuntimeEvent::ScanCompleted {
         scan: ScanKind::Ip,
@@ -958,7 +949,7 @@ fn scan_ip_list_with_ip_progress(
 ) -> anyhow::Result<Vec<IpProbeEntry>> {
     let (tx, mut rx) = mpsc::unbounded_channel::<IpScanEvent>();
     let cfg_clone = cfg.clone();
-    let scan_handle = rt.spawn(async move { scan_ip_list(ips, scan_sni, timeout, cfg_clone, Some(tx), Some(1000)).await });
+    let scan_handle = rt.spawn(async move { scan_ip_list(ips, scan_sni, timeout, cfg_clone, Some(tx)).await });
 
     let mut terminal = tui::enter_tui()?;
     let (arrived, aborted) = tui::run_ip_scan_progress(&mut terminal, &mut rx, total_ips)?;

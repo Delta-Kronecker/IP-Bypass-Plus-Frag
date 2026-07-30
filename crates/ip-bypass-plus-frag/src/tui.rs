@@ -1,8 +1,6 @@
 //! ratatui-based UI for ip_bypass_plus mode: IP scan-progress view,
 //! interactive IP selection table, and live proxy dashboard.
 
-#![allow(dead_code)]
-
 use std::collections::VecDeque;
 use std::io::{self, Stdout};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
