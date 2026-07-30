@@ -17,16 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Download WinDivert SDK
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -Uri "https://reqrypt.org/downloads/WinDivert-2.2.2.zip" -OutFile windivert.zip
-          Expand-Archive -Path windivert.zip -DestinationPath windivert
-          $libDir = "windivert\WinDivert-2.2.2\lib\x64"
-          if (-not (Test-Path $libDir)) {
-            $libDir = "windivert\lib\x64"
-          }
-          echo "LIB=$libDir;%LIB%" >> $env:GITHUB_ENV
+      - name: Install CMake
+        run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
       - name: Package
