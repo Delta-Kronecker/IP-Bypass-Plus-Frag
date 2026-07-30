@@ -4,6 +4,7 @@ members = [
     "crates/ip-bypass-plus-frag-core",
     "crates/ip-bypass-plus-frag-platform",
     "crates/ip-bypass-plus-frag",
+    "crates/ip-bypass-plus-frag-ffi",
 ]
 
 [workspace.package]

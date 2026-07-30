@@ -1,0 +1,21 @@
+[package]
+name = "ip-bypass-plus-frag-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "C FFI bindings for IP Bypass Plus Frag — embeddable Android/core library."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ip-bypass-plus-frag-core = { path = "../ip-bypass-plus-frag-core" }
+ip-bypass-plus-frag-platform = { path = "../ip-bypass-plus-frag-platform", default-features = false }
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "macros", "io-util", "sync", "time"] }
+rustls.workspace = true

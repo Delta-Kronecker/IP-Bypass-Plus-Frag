@@ -293,6 +293,7 @@ pub async fn scan_ip_list(
     timeout: Duration,
     config: Arc<crate::config::Config>,
     progress_tx: Option<mpsc::UnboundedSender<IpScanEvent>>,
+    max_scanned: Option<usize>,
 ) -> Vec<IpProbeEntry> {
     if ips.is_empty() {
         return Vec::new();
@@ -353,13 +354,13 @@ pub async fn scan_ip_list(
             });
         }
     }
-    // All Phase 1 done — drop p2_tx so p2_rx closes when all spawns finish.
-    drop(p2_tx);
 
     let mut tls_results: std::collections::HashMap<IpAddr, IpProbeEntry> =
         std::collections::HashMap::new();
-    let healthy_count = std::sync::atomic::AtomicUsize::new(0);
+    let mut healthy_count: usize = 0;
+    let mut scanned_count: usize = 0;
     while let Some(entry) = p2_rx.recv().await {
+        scanned_count += 1;
         let is_healthy = entry.tcp_latency_ms.is_some()
             && entry.tls_ok
             && entry.cert_valid
@@ -367,14 +368,22 @@ pub async fn scan_ip_list(
             && entry.download_bps.is_some()
             && entry.upload_bps.is_some();
         if is_healthy {
-            let count = healthy_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-            if config.MAX_IP_SCAN > 0 && count >= config.MAX_IP_SCAN {
-                info!(healthy = count, max = config.MAX_IP_SCAN, "reached MAX_IP_SCAN healthy IPs — stopping early");
+            healthy_count += 1;
+            if config.MAX_IP_SCAN > 0 && healthy_count >= config.MAX_IP_SCAN {
+                info!(healthy = healthy_count, max = config.MAX_IP_SCAN, "reached MAX_IP_SCAN healthy IPs — stopping early");
+                break;
+            }
+        }
+        if let Some(max) = max_scanned {
+            if scanned_count >= max {
+                info!(scanned = scanned_count, max, "reached max_scanned limit — stopping early");
                 break;
             }
         }
         tls_results.insert(entry.ip, entry);
     }
+    // Ensure p2_tx is dropped so p2_rx closes when all spawned Phase 2 tasks finish.
+    drop(p2_tx);
 
     // Build final list: merge TCP failures + TLS results.
     let mut all: Vec<IpProbeEntry> = tcp_results

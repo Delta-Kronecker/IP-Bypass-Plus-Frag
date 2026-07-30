@@ -813,7 +813,7 @@ async fn background_ip_rescan(
         };
         let cfg_clone = cfg.clone();
         let sni_clone = scan_sni.clone();
-        let entries = scan_ip_list(ips, sni_clone, scan_timeout, cfg_clone, None).await;
+        let entries = scan_ip_list(ips, sni_clone, scan_timeout, cfg_clone, None, None).await;
 
         if headless {
             info!(
@@ -871,7 +871,7 @@ async fn scan_ip_list_headless(
     });
 
     if !events.enabled() {
-        let entries = scan_ip_list(ips, scan_sni, timeout, cfg, None).await;
+        let entries = scan_ip_list(ips, scan_sni, timeout, cfg, None, None).await;
         events.emit(RuntimeEvent::ScanCompleted {
             scan: ScanKind::Ip,
             results: entries.len(),
@@ -912,7 +912,7 @@ async fn scan_ip_list_headless(
         }
     });
 
-    let entries = scan_ip_list(ips, scan_sni, timeout, cfg, Some(tx)).await;
+    let entries = scan_ip_list(ips, scan_sni, timeout, cfg, Some(tx), None).await;
     let _ = progress_handle.await;
     events.emit(RuntimeEvent::ScanCompleted {
         scan: ScanKind::Ip,
@@ -931,7 +931,7 @@ fn scan_ip_list_with_ip_progress(
 ) -> anyhow::Result<Vec<IpProbeEntry>> {
     let (tx, mut rx) = mpsc::unbounded_channel::<IpScanEvent>();
     let cfg_clone = cfg.clone();
-    let scan_handle = rt.spawn(async move { scan_ip_list(ips, scan_sni, timeout, cfg_clone, Some(tx)).await });
+    let scan_handle = rt.spawn(async move { scan_ip_list(ips, scan_sni, timeout, cfg_clone, Some(tx), Some(1000)).await });
 
     let mut terminal = tui::enter_tui()?;
     let (arrived, aborted) = tui::run_ip_scan_progress(&mut terminal, &mut rx, total_ips)?;

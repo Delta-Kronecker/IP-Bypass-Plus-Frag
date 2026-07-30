@@ -1,0 +1,136 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v0.2.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        working-directory: IP-Bypass-Plus-Frag
+        run: cargo build --release
+      - name: Package
+        working-directory: IP-Bypass-Plus-Frag/target/release
+        shell: pwsh
+        run: Compress-Archive -Path ip-bypass-plus-frag.exe -DestinationPath ../../ip-bypass-plus-frag-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: IP-Bypass-Plus-Frag/ip-bypass-plus-frag-windows-x64.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - name: Install musl-tools
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build
+        working-directory: IP-Bypass-Plus-Frag
+        run: cargo build --release --target x86_64-unknown-linux-musl
+      - name: Package
+        working-directory: IP-Bypass-Plus-Frag
+        run: tar czf ip-bypass-plus-frag-linux-x64.tar.gz -C target/x86_64-unknown-linux-musl/release ip-bypass-plus-frag
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: IP-Bypass-Plus-Frag/ip-bypass-plus-frag-linux-x64.tar.gz
+
+  build-termux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-musl
+      - uses: mlugg/setup-zig@v1
+      - name: Install cargo-zigbuild
+        run: cargo install cargo-zigbuild
+      - name: Build
+        working-directory: IP-Bypass-Plus-Frag
+        run: cargo zigbuild --release --target aarch64-unknown-linux-musl
+      - name: Package
+        working-directory: IP-Bypass-Plus-Frag
+        run: tar czf ip-bypass-plus-frag-termux-aarch64.tar.gz -C target/aarch64-unknown-linux-musl/release ip-bypass-plus-frag
+      - uses: actions/upload-artifact@v4
+        with:
+          name: termux-aarch64
+          path: IP-Bypass-Plus-Frag/ip-bypass-plus-frag-termux-aarch64.tar.gz
+
+  build-android-lib:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+      - uses: android-actions/setup-android@v3
+      - name: Build Android shared library
+        working-directory: IP-Bypass-Plus-Frag
+        run: cargo ndk -t arm64-v8a build --release -p ip-bypass-plus-frag-ffi
+      - name: Package
+        working-directory: IP-Bypass-Plus-Frag
+        run: |
+          mkdir -p android-lib
+          cp target/aarch64-linux-android/release/*.so android-lib/libibpf.so
+          tar czf ip-bypass-plus-frag-android-arm64.tar.gz -C android-lib .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-arm64
+          path: IP-Bypass-Plus-Frag/ip-bypass-plus-frag-android-arm64.tar.gz
+
+  create-release:
+    needs: [build-windows, build-linux, build-termux, build-android-lib]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: "Release ${{ github.event.inputs.version }}"
+          body: |
+            ## IP Bypass Plus Frag ${{ github.event.inputs.version }}
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | Windows x64 | `ip-bypass-plus-frag-windows-x64.zip` |
+            | Linux x64 (musl) | `ip-bypass-plus-frag-linux-x64.tar.gz` |
+            | Termux aarch64 | `ip-bypass-plus-frag-termux-aarch64.tar.gz` |
+            | Android aarch64 (.so) | `ip-bypass-plus-frag-android-arm64.tar.gz` |
+
+            ### Android Library
+            The Android `.so` library (`libibpf.so`) can be embedded in Android apps.
+            Exported C functions:
+            - `ibpf_start(config_path)` — Start proxy
+            - `ibpf_stop()` — Stop proxy
+            - `ibpf_is_running()` — Check status
+            - `ibpf_version()` — Get version
+          files: |
+            artifacts/windows-x64/*
+            artifacts/linux-x64/*
+            artifacts/termux-aarch64/*
+            artifacts/android-arm64/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
