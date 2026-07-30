@@ -366,7 +366,7 @@ pub async fn run_ip_bypass_plus_proxy(
     interface_ip: Ipv4Addr,
     flows: FlowTable,
     event_tx: Option<ProxyEventSender>,
-    ip_pool: Option<Arc<IpPool>>,
+    _ip_pool: Option<Arc<IpPool>>,
 ) -> anyhow::Result<()> {
     let listen_addr: SocketAddr = format!("{}:{}", cfg.LISTEN_HOST, cfg.LISTEN_PORT)
         .parse()
@@ -464,7 +464,7 @@ async fn handle_intercept_connection(
     peer: SocketAddr,
     event_tx: Option<ProxyEventSender>,
     settings: ConnectionSettings,
-    ip_pool: Option<Arc<IpPool>>,
+    _ip_pool: Option<Arc<IpPool>>,
 ) -> anyhow::Result<()> {
     let connect_port = CONNECT_PORT;
     let interface_ip = target.interface_ip;
@@ -671,7 +671,7 @@ async fn handle_tcp_seg_connection_with_ip(
     mut incoming: TcpStream,
     peer: SocketAddr,
     event_tx: Option<ProxyEventSender>,
-    ip_pool: Option<Arc<IpPool>>,
+    _ip_pool: Option<Arc<IpPool>>,
 ) -> anyhow::Result<()> {
     let src_port = peer.port();
 

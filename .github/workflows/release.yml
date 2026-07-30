@@ -17,6 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install WinDivert
+        run: |
+          curl -L -o windivert.zip https://reqrypt.org/downloads/WinDivert-2.2.2.zip
+          Expand-Archive -Path windivert.zip -DestinationPath windivert
+          $libDir = "windivert\WinDivert-2.2.2\lib\x64"
+          echo "LIB=$libDir;%LIB%" >> $env:GITHUB_ENV
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
       - name: Package
@@ -54,9 +60,9 @@ jobs:
           targets: aarch64-unknown-linux-musl
       - name: Install Zig
         run: |
-          curl -L -o zig.tar.xz https://github.com/ziglang/zig/releases/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz
+          curl -L -o zig.tar.xz https://github.com/ziglang/zig/releases/download/0.14.1/zig-linux-x86_64-0.14.1.tar.xz
           tar -xf zig.tar.xz
-          echo "$PWD/zig-linux-x86_64-0.16.0" >> $GITHUB_PATH
+          echo "$PWD/zig-linux-x86_64-0.14.1" >> $GITHUB_PATH
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Build
