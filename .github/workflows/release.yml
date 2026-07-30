@@ -19,8 +19,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
-        env:
-          LIB: windivert/x64
       - name: Package
         shell: pwsh
         run: Compress-Archive -Path target/release/ip-bypass-plus-frag.exe -DestinationPath ip-bypass-plus-frag-windows-x64.zip
