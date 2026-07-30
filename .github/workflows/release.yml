@@ -73,22 +73,12 @@ jobs:
           echo "zig binary absolute path: $ZIG_PATH"
           chmod +x "$ZIG_PATH"
           "$ZIG_PATH" version
-          echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
-          echo "ZIG_DIR=$ZIG_DIR" >> $GITHUB_ENV
+          echo "$(pwd)/$ZIG_DIR" >> $GITHUB_PATH
       - name: Install cargo-zigbuild
-        env:
-          ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
         run: cargo install cargo-zigbuild
       - name: Clean zigbuild cache
         run: rm -rf /home/runner/.cache/cargo-zigbuild
-      - name: Verify zig before build
-        run: |
-          echo "ZIGBUILD_ZIG=$ZIGBUILD_ZIG"
-          test -x "$ZIGBUILD_ZIG" && echo "zig binary exists and is executable" || echo "zig binary NOT found"
-          ls -la "$ZIGBUILD_ZIG" 2>/dev/null || true
       - name: Build
-        env:
-          ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
         run: cargo zigbuild --release --target aarch64-unknown-linux-musl -p ip-bypass-plus-frag
       - name: Package
         run: tar czf ip-bypass-plus-frag-termux-aarch64.tar.gz -C target/aarch64-unknown-linux-musl/release ip-bypass-plus-frag
