@@ -69,19 +69,23 @@ jobs:
           ZIG_DIR=$(find . -maxdepth 1 -type d -name "zig-x86-linux-*" | head -n 1)
           echo "Found zig dir: $ZIG_DIR"
           ls -la "$ZIG_DIR"
-          ZIG_PATH="$ZIG_DIR/zig"
+          ZIG_PATH="$(pwd)/$ZIG_DIR/zig"
+          echo "zig binary absolute path: $ZIG_PATH"
           chmod +x "$ZIG_PATH"
-          echo "zig binary: $ZIG_PATH"
           "$ZIG_PATH" version
           echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
-          echo "$ZIG_DIR" >> $GITHUB_PATH
-          which zig || true
+          echo "ZIG_DIR=$ZIG_DIR" >> $GITHUB_ENV
       - name: Install cargo-zigbuild
         env:
           ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
         run: cargo install cargo-zigbuild
       - name: Clean zigbuild cache
-        run: rm -rf ~/.cache/cargo-zigbuild
+        run: rm -rf /home/runner/.cache/cargo-zigbuild
+      - name: Verify zig before build
+        run: |
+          echo "ZIGBUILD_ZIG=$ZIGBUILD_ZIG"
+          test -x "$ZIGBUILD_ZIG" && echo "zig binary exists and is executable" || echo "zig binary NOT found"
+          ls -la "$ZIGBUILD_ZIG" 2>/dev/null || true
       - name: Build
         env:
           ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
