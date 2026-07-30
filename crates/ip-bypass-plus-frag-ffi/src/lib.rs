@@ -123,7 +123,7 @@ async fn run_headless(config_path: &str) -> anyhow::Result<()> {
     use ip_bypass_plus_frag_core::config::Config;
     use ip_bypass_plus_frag_core::flow::new_flow_table;
     use ip_bypass_plus_frag_core::ip_scanner::{load_ip_list, scan_ip_list};
-    use ip_bypass_plus_frag_core::interceptor::FilterSpec;
+    use ip_bypass_plus_frag_core::interceptor::{FilterSpec, PacketInterceptor};
     use ip_bypass_plus_frag_core::methods::build_method;
     use ip_bypass_plus_frag_core::net::default_interface_ipv4;
     use ip_bypass_plus_frag_core::proxy::run_ip_bypass_plus_proxy;
