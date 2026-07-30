@@ -17,18 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install WinDivert
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -Uri "https://reqrypt.org/downloads/WinDivert-2.2.2.zip" -OutFile windivert.zip
-          Expand-Archive -Path windivert.zip -DestinationPath windivert
-          $libDir = "windivert\WinDivert-2.2.2\lib\x64"
-          if (-not (Test-Path $libDir)) {
-            $libDir = "windivert\lib\x64"
-          }
-          echo "LIB=$libDir;%LIB%" >> $env:GITHUB_ENV
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
+        env:
+          LIB: windivert/
       - name: Package
         shell: pwsh
         run: Compress-Archive -Path target/release/ip-bypass-plus-frag.exe -DestinationPath ip-bypass-plus-frag-windows-x64.zip
@@ -66,7 +58,7 @@ jobs:
         run: |
           curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
-          ZIG_PATH=$(find . -maxdepth 2 -type f -name zig -path "*/zig-linux-*" | head -n 1)
+          ZIG_PATH=$(tar -tf zig.tar.xz | head -1 | sed 's|/.*||' | awk '{print "./"$0"/zig"}')
           chmod +x "$ZIG_PATH"
           echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
       - name: Install cargo-zigbuild
