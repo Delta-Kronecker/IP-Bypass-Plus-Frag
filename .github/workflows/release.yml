@@ -66,19 +66,23 @@ jobs:
         run: |
           curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
-          echo "=== tarball contents ==="
-          tar -tf zig.tar.xz | head -5
-          echo "=== find zig dir ==="
           ZIG_DIR=$(find . -maxdepth 1 -type d -name "zig-x86-linux-*" | head -n 1)
-          echo "ZIG_DIR=$ZIG_DIR"
+          echo "Found zig dir: $ZIG_DIR"
           ls -la "$ZIG_DIR"
           ZIG_PATH="$ZIG_DIR/zig"
-          echo "ZIG_PATH=$ZIG_PATH"
           chmod +x "$ZIG_PATH"
-          ls -la "$ZIG_PATH"
+          echo "zig binary: $ZIG_PATH"
+          "$ZIG_PATH" version
           echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
+          echo "$ZIG_DIR" >> $GITHUB_PATH
+          which zig || true
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
+      - name: Verify zig
+        run: |
+          echo "ZIGBUILD_ZIG=$ZIGBUILD_ZIG"
+          which zig
+          zig version
       - name: Build
         run: cargo zigbuild --release --target aarch64-unknown-linux-musl -p ip-bypass-plus-frag
       - name: Package
