@@ -66,11 +66,17 @@ jobs:
         run: |
           curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
-          ZIG_DIR=$(tar -tf zig.tar.xz | head -1 | cut -d/ -f1)
-          ZIG_PATH="$PWD/$ZIG_DIR/zig"
+          echo "=== tarball contents ==="
+          tar -tf zig.tar.xz | head -20
+          echo "=== extracted dirs ==="
+          ls -la
+          echo "=== zig dir contents ==="
+          ls -la zig-linux-* 2>/dev/null || echo "no zig-linux-* dir"
+          ZIG_PATH=$(find . -maxdepth 1 -type d -name "zig-linux-*" | head -n 1)/zig
+          echo "=== ZIG_PATH=$ZIG_PATH ==="
           chmod +x "$ZIG_PATH"
+          ls -la "$ZIG_PATH"
           echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
-          "$ZIG_PATH" version
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Build
