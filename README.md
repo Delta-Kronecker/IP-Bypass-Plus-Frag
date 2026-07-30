@@ -43,8 +43,7 @@ All bypass method implementations (`tls_record_frag`, `tcp_segmentation`), the I
 | **TUI dashboard** | Ratatui-powered live stats |
 | **JSON events** | `--json-events` for headless/Android controller integration |
 | **Background rescan** | Periodic re-scanning with automatic target switching |
-| **Non-interactive mode** | `--cidr-range <INDEX>`, `--mode single|multi`, `--no-tui` for headless/automated runs |
-| **Cross-platform** | Windows (WinDivert), Linux/Android (NFQUEUE), Termux (static musl), Android FFI (`.so`) |
+| **Cross-platform** | Windows (WinDivert), Linux/Android (NFQUEUE), Termux (static musl) |
 
 ---
 
@@ -124,24 +123,12 @@ chmod +x ip-bypass-plus-frag
 ./ip-bypass-plus-frag --config config.toml
 ```
 
-### First run flow (interactive)
+### First run flow
 
 1. **Select CIDR range** (if multiple ranges in `ip_list.txt`)
 2. **Select mode** — `select 1 ip` or `use multi ip`
 3. **Select IP** (if single mode)
 4. **Dashboard** — IP stats with connection counts
-
-### Non-interactive / headless mode
-
-Use `--no-tui` together with `--cidr-range` and `--mode` to skip all interactive prompts:
-
-```bash
-# Single IP, first CIDR range, auto-select top candidate
-ip-bypass-plus-frag.exe --config config.toml --cidr-range 0 --mode single --auto-select --no-tui
-
-# Multi-IP pool, second CIDR range
-ip-bypass-plus-frag.exe --config config.toml --cidr-range 1 --mode multi --no-tui
-```
 
 ---
 
@@ -170,9 +157,9 @@ Options:
       --scan-timeout <SECS>     Override SCAN_TIMEOUT_SECS
       --rescan-interval <SECS>  Override RESCAN_INTERVAL_SECS
       --bypass-timeout <SECS>   Override BYPASS_TIMEOUT_SECS
-      --cidr-range <INDEX>      Select CIDR range by index (0-based)
+
+      --cidr-range <INDEX>      Select CIDR range by 0-based index
       --mode <MODE>             'single' or 'multi' IP mode
-      --relay-max-lifetime <SECS>  Override RELAY_MAX_LIFETIME_SECS
 ```
 
 ---
@@ -181,25 +168,18 @@ Options:
 
 ### Prerequisites
 
-- Rust toolchain (stable, 1.75+)
-- CMake (required for Windows builds with `windivert-sys vendored`)
-- For Termux/Android cross-compilation: `aarch64-unknown-linux-musl` target + zig
-- For Android FFI: `aarch64-linux-android` target + `cargo-ndk`
+- Rust toolchain (stable)
+- For Windows builds: `x86_64-pc-windows-gnu` target
+- For Termux builds: `aarch64-unknown-linux-musl` target + zig
 
 ### Build commands
 
 ```bash
-# Windows (MSVC)
-cargo build --release -p ip-bypass-plus-frag
+# Windows
+cargo +stable-x86_64-pc-windows-gnu build --release
 
-# Linux (musl)
-cargo build --release --target x86_64-unknown-linux-musl -p ip-bypass-plus-frag
-
-# Termux (aarch64 musl, requires zig in PATH)
-cargo zigbuild --release --target aarch64-unknown-linux-musl -p ip-bypass-plus-frag
-
-# Android shared library (arm64-v8a)
-cargo ndk -t arm64-v8a build --release -p ip-bypass-plus-frag-ffi
+# Termux (requires zig in PATH)
+cargo zigbuild --release --target aarch64-unknown-linux-musl
 ```
 
 ---
@@ -211,10 +191,9 @@ IpBypassPlusFrag/
 ├── Cargo.toml                  # Workspace root
 ├── config.toml                 # Configuration
 ├── ip_list.txt                 # IP/CIDR list
-├── .github/workflows/
-│   └── release.yml             # CI/CD: Windows, Linux, Termux, Android
+├── .cargo/config.toml          # WINDIVERT_PATH env
 ├── crates/
-│   ├── ip-bypass-plus-frag-core/       # Core logic
+│   ├── zerodpi-core/           # Core logic
 │   │   └── src/
 │   │       ├── config.rs       # Config parsing (ip_bypass_plus only)
 │   │       ├── flow.rs         # Flow tracking (unchanged from ZeroDPI)
@@ -226,21 +205,18 @@ IpBypassPlusFrag/
 │   │       └── methods/
 │   │           ├── tls_record_frag.rs  # TLS record fragmentation
 │   │           └── tcp_segmentation.rs # TCP-level segmentation
-│   ├── ip-bypass-plus-frag-platform/   # Platform backends
+│   ├── zerodpi-platform/       # Platform backends
 │   │   └── src/
 │   │       ├── linux.rs        # NFQUEUE (unchanged from ZeroDPI)
 │   │       └── windows.rs      # WinDivert (unchanged from ZeroDPI)
-│   ├── ip-bypass-plus-frag/            # CLI binary
-│   │   └── src/
-│   │       ├── main.rs         # Entry point (ip_bypass_plus only)
-│   │       ├── tui.rs          # Dashboard + selection UI
-│   │       └── runtime_events.rs # JSON event emitter
-│   └── ip-bypass-plus-frag-ffi/        # C FFI for Android embedding
+│   └── zerodpi/                # CLI binary
 │       └── src/
-│           └── lib.rs          # ibpf_start/stop/is_running/version
-└── windivert/                   # WinDivert runtime files (Windows)
-    ├── WinDivert.dll
-    └── WinDivert64.sys
+│           ├── main.rs         # Entry point (ip_bypass_plus only)
+│           ├── tui.rs          # Dashboard + selection UI
+│           └── runtime_events.rs # JSON event emitter
+└── dist/                       # Release archives
+    ├── windows/
+    └── termux/
 ```
 
 ---
@@ -250,10 +226,11 @@ IpBypassPlusFrag/
 - Built on [ZeroDPI](https://github.com/mhdr/ZeroDPI) by ZeroDPI contributors
 - DPI bypass techniques inspired by [patterniha/SNI-Spoofing](https://github.com/patterniha/SNI-Spoofing)
 - Cross-compilation powered by [zig](https://ziglang.org/)
-- Android FFI bindings via `cargo-ndk`
 
 ---
 
 ## License
 
 MIT
+
+
