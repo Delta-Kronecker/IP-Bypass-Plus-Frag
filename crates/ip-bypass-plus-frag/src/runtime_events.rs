@@ -56,6 +56,8 @@ pub enum RuntimeEvent {
         listen_port: u16,
         auto_select: bool,
         no_tui: bool,
+        cidr_range: Option<u32>,
+        mode_selection: Option<String>,
         root_required: bool,
     },
     ScanStarted {

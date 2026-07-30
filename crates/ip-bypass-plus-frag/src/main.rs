@@ -111,6 +111,10 @@ struct Args {
     bypass_timeout: Option<u64>,
     #[arg(long)]
     relay_max_lifetime: Option<u64>,
+    #[arg(long)]
+    cidr_range: Option<u32>,
+    #[arg(long)]
+    mode: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -202,6 +206,8 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
         listen_port: cfg.LISTEN_PORT,
         auto_select: cfg.AUTO_SELECT,
         no_tui,
+        cidr_range: args.cidr_range,
+        mode_selection: args.mode.clone(),
         root_required,
     });
     if root_required {
@@ -234,7 +240,7 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
         .enable_all()
         .build()?;
 
-    return ip_bypass_plus_main(cfg, cfg_path, rt, no_tui, events, ip_list_path, scan_timeout);
+    return ip_bypass_plus_main(cfg, cfg_path, rt, no_tui, events, ip_list_path, scan_timeout, &args);
 }
 
 fn requires_packet_interception(cfg: &Config) -> bool {
@@ -523,6 +529,7 @@ fn ip_bypass_plus_main(
     events: RuntimeEventEmitter,
     ip_list_path: PathBuf,
     scan_timeout: Duration,
+    args: &Args,
 ) -> Result<()> {
     // (active_ip, active_score, pool_entries)
     let (active_ip, active_score, scan_entries): (IpAddr, Option<u8>, Vec<IpProbeEntry>) = if let Some(ref forced_ip) =
@@ -537,11 +544,25 @@ fn ip_bypass_plus_main(
     } else {
         // Parse CIDR ranges and show selection
         let ranges = ip_bypass_plus_frag_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
-        let selected_range = if !ranges.is_empty() && !no_tui {
-            let mut terminal = tui::enter_tui()?;
-            let idx = tui::run_range_selection(&mut terminal, &ranges)?;
-            tui::leave_tui(terminal)?;
-            Some(idx)
+        let selected_range = if !ranges.is_empty() {
+            if let Some(idx) = args.cidr_range {
+                if (idx as usize) < ranges.len() {
+                    Some(idx as usize)
+                } else {
+                    anyhow::bail!(
+                        "--cidr-range {} is out of bounds ({} ranges in ip_list)",
+                        idx,
+                        ranges.len()
+                    );
+                }
+            } else if !no_tui {
+                let mut terminal = tui::enter_tui()?;
+                let idx = tui::run_range_selection(&mut terminal, &ranges)?;
+                tui::leave_tui(terminal)?;
+                Some(idx)
+            } else {
+                None
+            }
         } else {
             None
         };
@@ -605,7 +626,13 @@ fn ip_bypass_plus_main(
         }
 
         // Ask user to choose mode (unless auto or headless)
-        let use_pool = if cfg.AUTO_SELECT || no_tui {
+        let use_pool = if let Some(ref mode_str) = args.mode {
+            match mode_str.as_str() {
+                "single" => false,
+                "multi" => true,
+                _ => anyhow::bail!("--mode must be 'single' or 'multi'"),
+            }
+        } else if cfg.AUTO_SELECT || no_tui {
             false
         } else {
             let mut terminal = tui::enter_tui()?;

@@ -488,6 +488,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ip-bypass-plus-frag-ffi"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ip-bypass-plus-frag-core",
+ "ip-bypass-plus-frag-platform",
+ "rustls",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "ip-bypass-plus-frag-platform"
 version = "0.1.0"
 dependencies = [
