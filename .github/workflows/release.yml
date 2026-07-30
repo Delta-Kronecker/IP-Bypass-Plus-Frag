@@ -19,9 +19,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install WinDivert
         run: |
-          curl -L -o windivert.zip https://reqrypt.org/downloads/WinDivert-2.2.2.zip
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri "https://reqrypt.org/downloads/WinDivert-2.2.2.zip" -OutFile windivert.zip
           Expand-Archive -Path windivert.zip -DestinationPath windivert
           $libDir = "windivert\WinDivert-2.2.2\lib\x64"
+          if (-not (Test-Path $libDir)) {
+            $libDir = "windivert\lib\x64"
+          }
           echo "LIB=$libDir;%LIB%" >> $env:GITHUB_ENV
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
@@ -62,7 +66,9 @@ jobs:
         run: |
           curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
-          echo "$PWD/zig-linux-x86_64-0.17.0-dev.1509+bb296ab9b" >> $GITHUB_PATH
+          ZIG_PATH=$(find . -maxdepth 2 -type f -name zig -path "*/zig-linux-*" | head -n 1)
+          chmod +x "$ZIG_PATH"
+          echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Build
