@@ -77,13 +77,14 @@ jobs:
           echo "$ZIG_DIR" >> $GITHUB_PATH
           which zig || true
       - name: Install cargo-zigbuild
+        env:
+          ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
         run: cargo install cargo-zigbuild
-      - name: Verify zig
-        run: |
-          echo "ZIGBUILD_ZIG=$ZIGBUILD_ZIG"
-          which zig
-          zig version
+      - name: Clean zigbuild cache
+        run: rm -rf ~/.cache/cargo-zigbuild
       - name: Build
+        env:
+          ZIGBUILD_ZIG: ${{ env.ZIGBUILD_ZIG }}
         run: cargo zigbuild --release --target aarch64-unknown-linux-musl -p ip-bypass-plus-frag
       - name: Package
         run: tar czf ip-bypass-plus-frag-termux-aarch64.tar.gz -C target/aarch64-unknown-linux-musl/release ip-bypass-plus-frag
