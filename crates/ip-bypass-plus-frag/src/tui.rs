@@ -1345,7 +1345,7 @@ fn draw_dashboard(
         frame.render_widget(stats, chunks[1]);
 
         // Summary table: one row per pool IP with aggregated stats
-        let now = Instant::now();
+        let _now = Instant::now();
         let pool = match info {
             DashboardInfo::IpBypassPlusFragPool { pool, .. } => pool,
             _ => {

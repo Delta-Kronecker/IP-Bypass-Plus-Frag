@@ -165,8 +165,8 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
     let mut cfg = Config::from_file(&cfg_path)
         .with_context(|| format!("loading config from {}", cfg_path.display()))?;
 
-    if let Some(v) = args.listen_host {
-        cfg.LISTEN_HOST = v;
+    if let Some(ref v) = args.listen_host {
+        cfg.LISTEN_HOST = v.clone();
     }
     if let Some(v) = args.listen_port {
         cfg.LISTEN_PORT = v;
@@ -174,8 +174,8 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
     if args.auto_select {
         cfg.AUTO_SELECT = true;
     }
-    if let Some(v) = args.method {
-        cfg.BYPASS_METHOD = v;
+    if let Some(ref v) = args.method {
+        cfg.BYPASS_METHOD = v.clone();
     }
     if let Some(v) = args.queue_num {
         cfg.NFQUEUE_NUM = v;

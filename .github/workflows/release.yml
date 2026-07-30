@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Build
-        run: cargo build --release
+        run: cargo build --release -p ip-bypass-plus-frag
       - name: Package
         shell: pwsh
         run: Compress-Archive -Path target/release/ip-bypass-plus-frag.exe -DestinationPath ip-bypass-plus-frag-windows-x64.zip
@@ -52,7 +52,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-unknown-linux-musl
-      - uses: mlugg/setup-zig@v1
+      - name: Install Zig
+        run: |
+          curl -L -o zig.tar.xz https://github.com/ziglang/zig/releases/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz
+          tar -xf zig.tar.xz
+          echo "$PWD/zig-linux-x86_64-0.16.0" >> $GITHUB_PATH
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Build
