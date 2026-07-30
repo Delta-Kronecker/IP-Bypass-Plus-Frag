@@ -67,13 +67,13 @@ jobs:
           curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
           echo "=== tarball contents ==="
-          tar -tf zig.tar.xz | head -20
-          echo "=== extracted dirs ==="
-          ls -la
-          echo "=== zig dir contents ==="
-          ls -la zig-linux-* 2>/dev/null || echo "no zig-linux-* dir"
-          ZIG_PATH=$(find . -maxdepth 1 -type d -name "zig-linux-*" | head -n 1)/zig
-          echo "=== ZIG_PATH=$ZIG_PATH ==="
+          tar -tf zig.tar.xz | head -5
+          echo "=== find zig dir ==="
+          ZIG_DIR=$(find . -maxdepth 1 -type d -name "zig-x86-linux-*" | head -n 1)
+          echo "ZIG_DIR=$ZIG_DIR"
+          ls -la "$ZIG_DIR"
+          ZIG_PATH="$ZIG_DIR/zig"
+          echo "ZIG_PATH=$ZIG_PATH"
           chmod +x "$ZIG_PATH"
           ls -la "$ZIG_PATH"
           echo "ZIGBUILD_ZIG=$ZIG_PATH" >> $GITHUB_ENV
