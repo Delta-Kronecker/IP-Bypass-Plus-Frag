@@ -60,9 +60,9 @@ jobs:
           targets: aarch64-unknown-linux-musl
       - name: Install Zig
         run: |
-          curl -L -o zig.tar.xz https://github.com/ziglang/zig/releases/download/0.14.1/zig-linux-x86_64-0.14.1.tar.xz
+          curl -L -o zig.tar.xz https://ziglang.org/builds/zig-x86-linux-0.17.0-dev.1509+bb296ab9b.tar.xz
           tar -xf zig.tar.xz
-          echo "$PWD/zig-linux-x86_64-0.14.1" >> $GITHUB_PATH
+          echo "$PWD/zig-linux-x86_64-0.17.0-dev.1509+bb296ab9b" >> $GITHUB_PATH
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Build

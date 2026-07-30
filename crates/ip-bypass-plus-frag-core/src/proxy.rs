@@ -366,7 +366,7 @@ pub async fn run_ip_bypass_plus_proxy(
     interface_ip: Ipv4Addr,
     flows: FlowTable,
     event_tx: Option<ProxyEventSender>,
-    _ip_pool: Option<Arc<IpPool>>,
+    ip_pool: Option<Arc<IpPool>>,
 ) -> anyhow::Result<()> {
     let listen_addr: SocketAddr = format!("{}:{}", cfg.LISTEN_HOST, cfg.LISTEN_PORT)
         .parse()
