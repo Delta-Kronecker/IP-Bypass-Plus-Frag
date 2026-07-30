@@ -73,7 +73,9 @@ jobs:
           echo "zig binary absolute path: $ZIG_PATH"
           chmod +x "$ZIG_PATH"
           "$ZIG_PATH" version
-          echo "$(pwd)/$ZIG_DIR" >> $GITHUB_PATH
+          sudo ln -sf "$ZIG_PATH" /usr/local/bin/zig
+          which zig
+          zig version
       - name: Install cargo-zigbuild
         run: cargo install cargo-zigbuild
       - name: Clean zigbuild cache
