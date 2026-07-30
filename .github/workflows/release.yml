@@ -19,6 +19,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install CMake
         run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+      - name: Verify CMake
+        run: cmake --version
       - name: Build
         run: cargo build --release -p ip-bypass-plus-frag
       - name: Package
