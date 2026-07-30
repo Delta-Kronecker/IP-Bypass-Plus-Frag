@@ -25,4 +25,4 @@ nfq = { version = "0.2", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windivert = "0.6"
-windivert-sys = "0.10"
+windivert-sys = { version = "0.10", features = ["vendored"] }
