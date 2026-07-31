@@ -13,17 +13,15 @@ use ip_bypass_plus_frag_core::config::Config;
 use ip_bypass_plus_frag_core::flow::new_flow_table;
 use ip_bypass_plus_frag_core::handler::Handler;
 use ip_bypass_plus_frag_core::interceptor::{FilterSpec, PacketInterceptor};
-use ip_bypass_plus_frag_core::ip_scanner::{load_ip_list, scan_ip_list, IpProbeEntry};
+use ip_bypass_plus_frag_core::ip_scanner::{load_ip_list, scan_ip_list};
 use ip_bypass_plus_frag_core::methods::build_method;
 use ip_bypass_plus_frag_core::net::default_interface_ipv4;
 use ip_bypass_plus_frag_core::proxy::{run_ip_bypass_plus_proxy, CONNECT_PORT};
 use ip_bypass_plus_frag_platform::DefaultInterceptor;
 
-use tokio::sync::mpsc;
-
 /// Opaque handle to a running proxy instance.
 pub struct ProxyHandle {
-    _runtime: tokio::runtime::Runtime,
+    _runtime: tokio::runtime::Handle,
     shutdown_tx: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
