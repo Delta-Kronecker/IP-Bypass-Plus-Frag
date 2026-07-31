@@ -83,16 +83,16 @@ jobs:
         run: |
           cargo build --release --target aarch64-linux-android --lib --no-default-features
 
-      - name: Install musl cross-compiler (aarch64)
-        run: |
-          MUSL_URL="https://more.musl.cc/10/x86_64-linux-musl/aarch64-linux-musl-cross.tgz"
-          curl -fsSL "$MUSL_URL" | sudo tar xz -C /opt
-          echo "/opt/aarch64-linux-musl-cross/bin" >> $GITHUB_PATH
+      - name: Install Zig (for musl cross-compilation)
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
 
       - name: Build Termux aarch64 (static binary)
         env:
-          CC_aarch64_unknown_linux_musl: aarch64-linux-musl-gcc
-          AR_aarch64_unknown_linux_musl: aarch64-linux-musl-ar
+          CC_aarch64_unknown_linux_musl: zig cc -target aarch64-linux-musl
+          AR_aarch64_unknown_linux_musl: zig ar
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: zig cc -target aarch64-linux-musl
         run: |
           cargo build --release --target aarch64-unknown-linux-musl
 
