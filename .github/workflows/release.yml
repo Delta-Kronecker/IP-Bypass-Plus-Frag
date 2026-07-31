@@ -94,8 +94,8 @@ jobs:
         run: |
           mkdir -p dist/android
           cp target/aarch64-linux-android/release/libip_bypass_plus_frag.so dist/android/
-          cp config.toml dist/android/config.toml.default
-          cp ip_list.txt dist/android/ip_list.default.txt
+          cp config.toml dist/android/
+          cp ip_list.txt dist/android/
           cp crates/ip-bypass-plus-frag/include/ipbp.h dist/android/
           cd dist
           tar czf ../ip-bypass-plus-frag-android-aarch64.tar.gz android/
