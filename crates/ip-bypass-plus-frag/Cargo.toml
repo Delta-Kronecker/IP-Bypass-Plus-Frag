@@ -9,6 +9,10 @@ repository.workspace = true
 description = "IP Bypass Plus Frag: IPv4 relay with real-SNI-preserving DPI bypass."
 default-run = "ip-bypass-plus-frag"
 
+[lib]
+name = "ip_bypass_plus_frag"
+crate-type = ["cdylib", "lib"]
+
 [[bin]]
 name = "ip-bypass-plus-frag"
 path = "src/main.rs"
