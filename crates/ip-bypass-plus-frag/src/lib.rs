@@ -372,8 +372,8 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
 
     let interface_ip = match scan_rt.block_on(async {
         let probe_ip = std::net::IpAddr::V4(target_addr);
-        let mut ips = vec![probe_ip];
-        let entries =
+        let ips = vec![probe_ip];
+        let _entries =
             scan_ip_list(ips.clone(), scan_sni, timeout, cfg.clone(), None).await;
         // Use default interface discovery
         default_interface_ipv4(target_addr).ok()

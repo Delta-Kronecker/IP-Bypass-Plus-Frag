@@ -30,6 +30,11 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
 
+      - name: Prepare WinDivert linker files
+        run: |
+          cp WinDivert_WinDivert64/libWinDivert.dll.a .
+          cp WinDivert_WinDivert64/WinDivert.dll .
+
       - name: Build Windows x64
         run: cargo build --release --target x86_64-pc-windows-gnu
 
@@ -78,7 +83,16 @@ jobs:
         run: |
           cargo build --release --target aarch64-linux-android --lib --no-default-features
 
+      - name: Install musl cross-compiler (aarch64)
+        run: |
+          MUSL_URL="https://more.musl.cc/10/x86_64-linux-musl/aarch64-linux-musl-cross.tgz"
+          curl -fsSL "$MUSL_URL" | sudo tar xz -C /opt
+          echo "/opt/aarch64-linux-musl-cross/bin" >> $GITHUB_PATH
+
       - name: Build Termux aarch64 (static binary)
+        env:
+          CC_aarch64_unknown_linux_musl: aarch64-linux-musl-gcc
+          AR_aarch64_unknown_linux_musl: aarch64-linux-musl-ar
         run: |
           cargo build --release --target aarch64-unknown-linux-musl
 
