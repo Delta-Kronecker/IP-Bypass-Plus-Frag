@@ -111,6 +111,10 @@ struct Args {
     bypass_timeout: Option<u64>,
     #[arg(long)]
     relay_max_lifetime: Option<u64>,
+    #[arg(long)]
+    range: Option<String>,
+    #[arg(long)]
+    pool: bool,
 }
 
 fn main() -> Result<()> {
@@ -234,7 +238,7 @@ fn run(args: Args, events: RuntimeEventEmitter) -> Result<()> {
         .enable_all()
         .build()?;
 
-    return ip_bypass_plus_main(cfg, cfg_path, rt, no_tui, events, ip_list_path, scan_timeout);
+    return ip_bypass_plus_main(cfg, cfg_path, rt, no_tui, events, ip_list_path, scan_timeout, args.range, args.pool);
 }
 
 fn requires_packet_interception(cfg: &Config) -> bool {
@@ -523,6 +527,8 @@ fn ip_bypass_plus_main(
     events: RuntimeEventEmitter,
     ip_list_path: PathBuf,
     scan_timeout: Duration,
+    cli_range: Option<String>,
+    cli_pool: bool,
 ) -> Result<()> {
     // (active_ip, active_score, pool_entries)
     let (active_ip, active_score, scan_entries): (IpAddr, Option<u8>, Vec<IpProbeEntry>) = if let Some(ref forced_ip) =
@@ -537,17 +543,35 @@ fn ip_bypass_plus_main(
     } else {
         // Parse CIDR ranges and show selection
         let ranges = ip_bypass_plus_frag_core::ip_scanner::parse_cidr_ranges(&ip_list_path);
-        let selected_range = if !ranges.is_empty() && !no_tui {
+        let selected_range = if let Some(ref cli_range_str) = cli_range {
+            let net: IpNet = cli_range_str
+                .parse()
+                .with_context(|| format!("parsing --range value '{}'", cli_range_str))?;
+            let host_count = match net {
+                IpNet::V4(ref v4) => v4.hosts().count(),
+                IpNet::V6(ref v6) => v6.hosts().count(),
+            };
+            info!(range = %cli_range_str, host_count, "using --range from CLI");
+            let cli_range_entry = (cli_range_str.clone(), host_count);
+            let mut combined = vec![cli_range_entry];
+            for r in ranges {
+                if r.0 != *cli_range_str {
+                    combined.push(r);
+                }
+            }
+            (combined, Some(0usize))
+        } else if !ranges.is_empty() && !no_tui {
             let mut terminal = tui::enter_tui()?;
             let idx = tui::run_range_selection(&mut terminal, &ranges)?;
             tui::leave_tui(terminal)?;
-            Some(idx)
+            (ranges, Some(idx))
         } else {
-            None
+            (ranges, None)
         };
+        let (ranges, selected_idx) = selected_range;
 
         // Load IPs from selected range only (randomized order)
-        let ips = if let Some(idx) = selected_range {
+        let ips = if let Some(idx) = selected_idx {
             let (ref range_str, _) = ranges[idx];
             info!(range = %range_str, "selected CIDR range");
             let selected_net: IpNet = range_str.parse()
@@ -604,8 +628,11 @@ fn ip_bypass_plus_main(
             warn!("--no-tui cannot show the mode selection; auto-selecting single IP mode");
         }
 
-        // Ask user to choose mode (unless auto or headless)
-        let use_pool = if cfg.AUTO_SELECT || no_tui {
+        // Ask user to choose mode (unless auto, headless, or --pool flag)
+        let use_pool = if cli_pool {
+            info!("ip_bypass_plus: --pool flag set; using multi-IP pool mode");
+            true
+        } else if cfg.AUTO_SELECT || no_tui {
             false
         } else {
             let mut terminal = tui::enter_tui()?;

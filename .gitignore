@@ -39,3 +39,9 @@ zig-linux-x86_64-0.13.0.tar.xz
 dist/
 *.tar.gz
 *.zip
+
+# WinDivert build artifacts (copied to project root for linking)
+WinDivert.dll
+WinDivert64.sys
+WinDivert32.sys
+libWinDivert.dll.a
