@@ -18,7 +18,7 @@ use ip_bypass_plus_frag_core::interceptor::{FilterSpec, PacketInterceptor};
 use ip_bypass_plus_frag_core::ip_scanner::{load_ip_list, scan_ip_list};
 use ip_bypass_plus_frag_core::methods::build_method;
 use ip_bypass_plus_frag_core::net::default_interface_ipv4;
-use ip_bypass_plus_frag_core::proxy::{run_ip_bypass_plus_proxy, CONNECT_PORT};
+use ip_bypass_plus_frag_core::proxy::{run_ip_bypass_plus_proxy, IpPool, IpPoolEntry, CONNECT_PORT};
 use ip_bypass_plus_frag_platform::DefaultInterceptor;
 
 /// Opaque handle to a running proxy instance.
@@ -352,7 +352,8 @@ pub unsafe extern "C" fn ipbp_stop_proxy(handle: *mut ProxyHandle) {
 /// Start the proxy with full config text and target IP (no file path needed).
 ///
 /// This is the most convenient API for Android embedding: pass config contents
-/// as a string and the target IP directly.
+/// as a string and the target IP directly. Scans the full IP list, builds
+/// a pool, and starts the proxy with round-robin IP rotation.
 ///
 /// # Safety
 /// - `config_text` must be a valid null-terminated C string (TOML config).
@@ -389,8 +390,26 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
     let scan_sni: Arc<str> = Arc::from(cfg.IP_SCAN_SNI.as_str());
     let timeout = std::time::Duration::from_secs(cfg.SCAN_TIMEOUT_SECS);
 
-    // Scan to find interface IP
-    let scan_rt = match tokio::runtime::Builder::new_current_thread()
+    // Load IP list from config (absolute path)
+    let ip_list_path = std::path::PathBuf::from(&cfg.IP_LIST);
+    let ips = match load_ip_list(&ip_list_path, cfg.IPV6_MAX_HOSTS) {
+        Ok(ips) => ips,
+        Err(e) => {
+            emit_log(1, &format!("failed to load IP list: {e:#}"));
+            return std::ptr::null_mut();
+        }
+    };
+
+    if ips.is_empty() {
+        emit_log(1, "IP list is empty — add at least one IPv4 CIDR");
+        return std::ptr::null_mut();
+    }
+
+    let total_ips = ips.len();
+    emit_log(0, &format!("scanning {total_ips} IPs from {}", ip_list_path.display()));
+
+    // Scan all IPs concurrently
+    let scan_rt = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
     {
@@ -398,19 +417,55 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
         Err(_) => return std::ptr::null_mut(),
     };
 
-    let interface_ip = match scan_rt.block_on(async {
-        let probe_ip = std::net::IpAddr::V4(target_addr);
-        let ips = vec![probe_ip];
-        let _entries =
-            scan_ip_list(ips.clone(), scan_sni, timeout, cfg.clone(), None).await;
-        // Use default interface discovery
-        default_interface_ipv4(target_addr).ok()
-    }) {
-        Some(ip) => ip,
-        None => {
-            emit_log(1, "failed to determine interface IP");
+    let cfg_clone = cfg.clone();
+    let sni_clone = scan_sni.clone();
+    let entries = scan_rt.block_on(scan_ip_list(ips, sni_clone, timeout, cfg_clone, None));
+
+    if entries.is_empty() {
+        emit_log(1, "no IPs passed the scan — check connectivity or ip_list");
+        return std::ptr::null_mut();
+    }
+
+    // Log scan results in concise format: "104.16.0.174 tcp=91ms tls=99ms score=60"
+    for e in &entries {
+        let tcp_str = e.tcp_latency_ms
+            .map(|v| format!("{v}ms"))
+            .unwrap_or_else(|| "fail".into());
+        let tls_str = if e.tls_ok {
+            e.tls_latency_ms
+                .map(|v| format!("{v}ms"))
+                .unwrap_or_else(|| "ok".into())
+        } else {
+            "fail".into()
+        };
+        emit_log(0, &format!("{} tcp={tcp_str} tls={tls_str} score={}", e.ip, e.score));
+    }
+
+    // Auto-select the best IP (highest score, lowest latency)
+    let best = &entries[0];
+    let active_ip_addr: std::net::IpAddr = best.ip;
+    emit_log(0, &format!("selected {} score={} — starting proxy", best.ip, best.score));
+
+    // Determine interface IP
+    let interface_ip = match default_interface_ipv4(target_addr) {
+        Ok(ip) => ip,
+        Err(e) => {
+            emit_log(1, &format!("failed to determine interface IP: {e:#}"));
             return std::ptr::null_mut();
         }
+    };
+
+    // Build IP pool from scan results
+    let pool_size = cfg.IP_POOL.min(entries.len());
+    let pool_entries: Vec<IpPoolEntry> = entries.iter()
+        .take(pool_size)
+        .map(|e| IpPoolEntry { ip: e.ip, score: e.score })
+        .collect();
+    let ip_pool = if pool_entries.len() > 1 {
+        emit_log(0, &format!("IP pool: {} IPs", pool_entries.len()));
+        Some(Arc::new(IpPool::new(pool_entries)))
+    } else {
+        None
     };
 
     let rt = match tokio::runtime::Builder::new_multi_thread()
@@ -425,7 +480,7 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
     let flows = new_flow_table();
-    let active_ip = Arc::new(RwLock::new(std::net::IpAddr::V4(target_addr)));
+    let active_ip = Arc::new(RwLock::new(active_ip_addr));
 
     // Start interceptor if needed
     if cfg.BYPASS_METHOD != "tls_frag" {
@@ -460,17 +515,29 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
     }
 
     let proxy_cfg = cfg.clone();
+    let proxy_pool = ip_pool.clone();
     rt.spawn(async move {
         let _ = run_ip_bypass_plus_proxy(
             proxy_cfg,
-            active_ip,
+            active_ip.clone(),
             interface_ip,
             flows,
             None,
-            None,
+            proxy_pool,
         )
         .await;
     });
+
+    // Background rescan if configured
+    if cfg.RESCAN_INTERVAL_SECS > 0 {
+        let rescan_cfg = cfg.clone();
+        let rescan_path = ip_list_path;
+        let interval = cfg.RESCAN_INTERVAL_SECS;
+        let active_clone = active_ip.clone();
+        rt.spawn(async move {
+            background_ip_rescan(rescan_cfg, rescan_path, interval, active_clone).await;
+        });
+    }
 
     let runtime_handle = rt.handle().clone();
     std::thread::Builder::new()
@@ -486,4 +553,41 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
         _runtime: runtime_handle,
         shutdown_tx: Some(shutdown_tx),
     }))
+}
+
+/// Background IP rescan — periodically re-scans the IP list and hot-swaps the active target.
+async fn background_ip_rescan(
+    cfg: Arc<Config>,
+    path: std::path::PathBuf,
+    interval_secs: u64,
+    active_ip: Arc<RwLock<std::net::IpAddr>>,
+) {
+    let interval = std::time::Duration::from_secs(interval_secs);
+    let scan_timeout = std::time::Duration::from_secs(cfg.SCAN_TIMEOUT_SECS);
+    let scan_sni: Arc<str> = Arc::from(cfg.IP_SCAN_SNI.as_str());
+    loop {
+        tokio::time::sleep(interval).await;
+        emit_log(0, &format!("background IP rescan starting (every {}s)", interval_secs));
+        let ips = match load_ip_list(&path, cfg.IPV6_MAX_HOSTS) {
+            Ok(ips) => ips,
+            Err(e) => {
+                emit_log(1, &format!("background rescan: failed to load IP list: {e:#}"));
+                continue;
+            }
+        };
+        let cfg_clone = cfg.clone();
+        let sni_clone = scan_sni.clone();
+        let entries = scan_ip_list(ips, sni_clone, scan_timeout, cfg_clone, None).await;
+
+        if let Some(best) = entries.first() {
+            let current = *active_ip.read().unwrap();
+            if current != best.ip && best.score >= cfg.SNI_SWITCH_MIN_SCORE {
+                *active_ip.write().unwrap() = best.ip;
+                emit_log(0, &format!(
+                    "hot-swapped active IP: {} -> {} (score={})",
+                    current, best.ip, best.score
+                ));
+            }
+        }
+    }
 }
