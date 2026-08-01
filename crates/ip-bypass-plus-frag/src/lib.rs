@@ -516,10 +516,11 @@ pub unsafe extern "C" fn ipbp_start_proxy_from_config(
 
     let proxy_cfg = cfg.clone();
     let proxy_pool = ip_pool.clone();
+    let proxy_active = active_ip.clone();
     rt.spawn(async move {
         let _ = run_ip_bypass_plus_proxy(
             proxy_cfg,
-            active_ip.clone(),
+            proxy_active,
             interface_ip,
             flows,
             None,
