@@ -9,6 +9,8 @@ use std::os::raw::c_char;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use log::{Level, Log, Metadata, Record};
+
 use ip_bypass_plus_frag_core::config::Config;
 use ip_bypass_plus_frag_core::flow::new_flow_table;
 use ip_bypass_plus_frag_core::handler::Handler;
@@ -61,6 +63,29 @@ fn emit_log(level: i32, msg: &str) {
 #[no_mangle]
 pub unsafe extern "C" fn ipbp_set_log_callback(callback: LogCallback) {
     LOG_CALLBACK = Some(callback);
+
+    struct IpbfLogger;
+
+    impl Log for IpbfLogger {
+        fn enabled(&self, _metadata: &Metadata) -> bool {
+            true
+        }
+
+        fn log(&self, record: &Record) {
+            let level = match record.level() {
+                Level::Error => 1,
+                Level::Warn => 2,
+                Level::Info => 0,
+                _ => 3,
+            };
+            emit_log(level, &format!("{}", record.args()));
+        }
+
+        fn flush(&self) {}
+    }
+
+    let _ = log::set_logger(Box::leak(Box::new(IpbfLogger)));
+    log::set_max_level(log::level_filters::LevelFilter::Trace);
 }
 
 /// Get library version string. Caller must free with `ipbp_free_string`.
