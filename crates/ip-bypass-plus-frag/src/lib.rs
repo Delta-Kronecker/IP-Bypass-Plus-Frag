@@ -85,7 +85,7 @@ pub unsafe extern "C" fn ipbp_set_log_callback(callback: LogCallback) {
     }
 
     let _ = log::set_logger(Box::leak(Box::new(IpbfLogger)));
-    log::set_max_level(log::level_filters::LevelFilter::Trace);
+    log::set_max_level(log::LevelFilter::Trace);
 }
 
 /// Get library version string. Caller must free with `ipbp_free_string`.
