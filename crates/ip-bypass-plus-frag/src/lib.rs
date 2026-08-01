@@ -64,6 +64,9 @@ fn emit_log(level: i32, msg: &str) {
 pub unsafe extern "C" fn ipbp_set_log_callback(callback: LogCallback) {
     LOG_CALLBACK = Some(callback);
 
+    // Install rustls crypto provider (ring) for TLS scanning
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     struct IpbfLogger;
 
     impl Log for IpbfLogger {
